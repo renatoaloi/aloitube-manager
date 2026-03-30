@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { DownloadService, ProcessingService } from "../api";
+import { ProcessingService } from "../api";
 import { useModalContext } from "../components/GlobalModal";
 import * as Lucide from "lucide-react";
 
-export default function Downloads() {
-  const [downloads, setDownloads] = useState([]);
+export default function Extracoes() {
+  const [audios, setAudios] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showModal } = useModalContext();
 
   useEffect(() => {
-    carregarDownloads();
+    carregarAudios();
 
-    // Polling basico a cada 3 segundos pra ver a barra/status de "Baixando"
-    const interval = setInterval(carregarDownloads, 3000);
+    // Polling a cada 3 segundos
+    const interval = setInterval(carregarAudios, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  const carregarDownloads = async () => {
+  const carregarAudios = async () => {
     try {
-      const data = await DownloadService.listarDownloads();
-      setDownloads(data);
+      const data = await ProcessingService.listarAudios();
+      setAudios(data);
     } catch (error) {
-      console.error("Erro ao carregar os downloads.", error);
+      console.error("Erro ao carregar os áudios.", error);
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export default function Downloads() {
           <span
             style={{ color: "var(--accent)", textShadow: "var(--shadow-neon)" }}
           >
-            Downloads
+            Extração
           </span>
         </h1>
         <span
@@ -67,16 +67,16 @@ export default function Downloads() {
             letterSpacing: "1px",
           }}
         >
-          ARQUIVOS LOCAIS
+          AUDIO REPOSITORY
         </span>
       </div>
 
-      {loading && downloads.length === 0 ? (
+      {loading && audios.length === 0 ? (
         <div
           className="glass-panel"
           style={{ textAlign: "center", padding: "50px", color: "var(--text)" }}
         >
-          Carregando histórico transacional...
+          Sincronizando banco de áudios...
         </div>
       ) : (
         <div className="glass-panel" style={{ overflow: "hidden" }}>
@@ -104,17 +104,7 @@ export default function Downloads() {
                     textTransform: "uppercase",
                   }}
                 >
-                  ID da Stream
-                </th>
-                <th
-                  style={{
-                    padding: "16px",
-                    fontSize: "12px",
-                    letterSpacing: "1px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Identificação
+                  ID Referência
                 </th>
                 <th
                   style={{
@@ -144,29 +134,28 @@ export default function Downloads() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Módulos
+                  Ações
                 </th>
               </tr>
             </thead>
             <tbody>
-              {downloads.length === 0 && (
+              {audios.length === 0 && (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="4"
                     style={{
                       padding: "40px",
                       textAlign: "center",
                       color: "var(--text)",
                     }}
                   >
-                    Nenhuma requisição de extração detectada. Refaça a operação
-                    na aba "Ativos Digitais".
+                    Nenhuma extração detectada. Use o comando de áudio em "Ativos Digitais".
                   </td>
                 </tr>
               )}
-              {downloads.map((dl) => (
+              {audios.map((audio) => (
                 <tr
-                  key={dl.id}
+                  key={audio.id}
                   style={{
                     borderBottom: "1px solid var(--border)",
                     transition: "background 0.2s",
@@ -188,17 +177,7 @@ export default function Downloads() {
                       fontSize: "13px",
                     }}
                   >
-                    #{dl.video_id}
-                  </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      color: "var(--text-h)",
-                      fontWeight: "500",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {dl.titulo}
+                    #{audio.video_id}
                   </td>
                   <td
                     style={{
@@ -208,47 +187,43 @@ export default function Downloads() {
                       fontFamily: "var(--mono)",
                     }}
                   >
-                    {dl.criado_em}
+                    {new Date(audio.criado_em).toLocaleString()}
                   </td>
                   <td style={{ padding: "16px" }}>
                     <span
                       style={{
                         padding: "4px 8px",
                         background:
-                          dl.status === "CONCLUIDO"
+                          audio.status === "CONCLUIDO"
                             ? "rgba(16, 185, 129, 0.1)"
-                            : dl.status === "BAIXANDO"
+                            : audio.status === "PROCESSANDO"
                               ? "rgba(245, 158, 11, 0.1)"
                               : "rgba(239, 68, 68, 0.1)",
                         color:
-                          dl.status === "CONCLUIDO"
+                          audio.status === "CONCLUIDO"
                             ? "var(--success)"
-                            : dl.status === "BAIXANDO"
+                            : audio.status === "PROCESSANDO"
                               ? "var(--warning)"
                               : "var(--danger)",
                         border: "1px solid",
                         borderColor:
-                          dl.status === "CONCLUIDO"
+                          audio.status === "CONCLUIDO"
                             ? "var(--success)"
-                            : dl.status === "BAIXANDO"
+                            : audio.status === "PROCESSANDO"
                               ? "var(--warning)"
                               : "var(--danger)",
                         borderRadius: "4px",
-                        textShadow:
-                          dl.status === "CONCLUIDO"
-                            ? "0 0 10px rgba(16,185,129,0.5)"
-                            : "none",
                         fontSize: "10px",
                         fontWeight: "800",
                         letterSpacing: "0.5px",
                         fontFamily: "var(--mono)",
                       }}
                     >
-                      {dl.status.toUpperCase()}
+                      {audio.status.toUpperCase()}
                     </span>
                   </td>
                   <td style={{ padding: "16px" }}>
-                    {dl.status === "CONCLUIDO" ? (
+                    {audio.status === "CONCLUIDO" ? (
                       <div style={{ display: "flex", gap: "8px" }}>
                         <button
                           style={{
@@ -258,97 +233,40 @@ export default function Downloads() {
                             border: "1px solid var(--border)",
                             borderRadius: "4px",
                             cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
                             fontSize: "11px",
                             fontWeight: "600",
-                            textTransform: "uppercase",
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.background = "var(--surface-hover)";
-                            e.target.style.borderColor = "var(--accent)";
+                            e.currentTarget.style.borderColor = "var(--accent)";
+                            e.currentTarget.style.color = "var(--accent)";
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.background = "var(--bg)";
-                            e.target.style.borderColor = "var(--border)";
+                            e.currentTarget.style.borderColor = "var(--border)";
+                            e.currentTarget.style.color = "var(--text-h)";
                           }}
                           onClick={async () => {
                             try {
-                              const res = await ProcessingService.extrairAudio(dl.video_id);
+                              const res = await ProcessingService.transcreverAudio(audio.id);
                               showModal({
-                                title: "Extração Iniciada",
+                                title: "Transcrição Iniciada",
                                 message: res.mensagem,
                                 type: "success",
                               });
                             } catch (e) {
                               showModal({
                                 title: "Erro de Módulo",
-                                message: "Falha ao iniciar extração de áudio. Verifique se o vídeo já foi baixado.",
+                                message: "Falha ao iniciar transcrição de áudio. Verifique se o áudio já foi extraído.",
                                 type: "error",
                               });
                             }
                           }}
                         >
-                          <Lucide.Music size={18} color="var(--accent)" />
+                          <Lucide.TextInitial size={18} color="var(--accent)" />
                         </button>
-
-                        {/* <button
-                          style={{
-                            padding: "6px 12px",
-                            background: "var(--bg)",
-                            color: "var(--text-h)",
-                            border: "1px solid var(--border)",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "11px",
-                            fontWeight: "600",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          <Info size={24} color="var(--accent)" />
-                        </button> */}
                       </div>
-                    ) : dl.status.startsWith("ERRO") ? (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await DownloadService.tentarNovamente(
-                              dl.id,
-                            );
-                            showModal({
-                              title: "Sobrescrita Injetada",
-                              message: res.mensagem,
-                              type: "success",
-                            });
-                            carregarDownloads();
-                          } catch (e) {
-                            showModal({
-                              title: "Erro de Execução",
-                              message:
-                                "O subsistema rejeitou a nova tentativa de download.",
-                              type: "error",
-                            });
-                          }
-                        }}
-                        style={{
-                          padding: "6px 12px",
-                          background: "transparent",
-                          color: "var(--warning)",
-                          border: "1px solid var(--warning)",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontSize: "11px",
-                          fontWeight: "700",
-                          textTransform: "uppercase",
-                        }}
-                        onMouseEnter={(e) =>
-                        (e.target.style.background =
-                          "rgba(245, 158, 11, 0.15)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.target.style.background = "transparent")
-                        }
-                      >
-                        Force Retry
-                      </button>
                     ) : (
                       <span
                         style={{

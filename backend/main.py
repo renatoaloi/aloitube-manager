@@ -7,6 +7,7 @@ from tasks import processar_dados_pesados
 from auth import router as auth_router
 from youtube_api import router as youtube_router
 from downloader import router as downloader_router
+from processing import router as processing_router
 
 app = FastAPI(title="API AI Assistant")
 
@@ -22,6 +23,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(youtube_router)
 app.include_router(downloader_router)
+app.include_router(processing_router)
 
 @app.post("/iniciar-processamento/{video_id}")
 def iniciar_processamento(video_id: str, db: Session = Depends(get_db)):

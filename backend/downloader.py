@@ -21,30 +21,51 @@ def executar_ytdlp(task_id: int, video_id: str, db: Session):
     if not task:
         return
 
-    # Usando subprocess para dar call no yt-dlp
+    # Usando yt-dlp sem extensão fixa
     youtube_url = f"https://www.youtube.com/watch?v={video_id}"
-    output_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mp4")
+    output_template = os.path.join(DOWNLOAD_DIR, f"{video_id}.%(ext)s")
     cookies_path = os.path.join(os.path.dirname(__file__), "secrets", "cookies.txt")
     
     try:
         # Puxa o download! (Demora alguns segundos/minutos)
-        print(f"[*] Baixando áudio de: {youtube_url}")
+        print(f"[*] Baixando vídeo de: {youtube_url}")
+        
         ydl_opts = {
-            'outtmpl': output_path,
+            'outtmpl': output_template,
+            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'merge_output_format': 'mp4',
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
             'quiet': True,
             'no_warnings': True,
             'cookies': cookies_path,
             'verbose': True,
         }
+        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([youtube_url])
-        print("[+] Download e extração de áudio concluídos.")
+            # Extrai info e faz o download
+            info = ydl.extract_info(youtube_url, download=True)
+            # Pega o caminho final do arquivo (pode ter mudado após post-processing)
+            final_path = ydl.prepare_filename(info)
+            
+            # Caso o postprocessor tenha mudado a extensão de .webm/.mkv para .mp4
+            # prepare_filename às vezes não reflete isso antes da execução,
+            # mas após extrair info e rodar o download, ele deve estar certo.
+            # Se ainda estiver diferente do arquivo real em disco, fazemos um fallback:
+            if not os.path.exists(final_path):
+                base_path = os.path.join(DOWNLOAD_DIR, video_id)
+                if os.path.exists(base_path + ".mp4"):
+                    final_path = base_path + ".mp4"
+
+        print(f"[+] Download concluído: {final_path}")
         
         task.status = "CONCLUIDO"
-        task.arquivo_path = output_path
+        task.arquivo_path = final_path
             
     except Exception as e:
-        print(e)
+        print(f"[!] Erro no download: {e}")
         task.status = "ERRO INTERNO"
     
     db.commit()

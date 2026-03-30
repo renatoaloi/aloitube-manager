@@ -1,29 +1,78 @@
 import React, { useState, useEffect } from "react";
-import { DownloadService, ProcessingService } from "../api";
+import { ProcessingService } from "../api";
 import { useModalContext } from "../components/GlobalModal";
 import * as Lucide from "lucide-react";
 
-export default function Downloads() {
-  const [downloads, setDownloads] = useState([]);
+export default function Transcricoes() {
+  const [transcricoes, setTranscricoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showModal } = useModalContext();
 
   useEffect(() => {
-    carregarDownloads();
+    carregarTranscricoes();
 
-    // Polling basico a cada 3 segundos pra ver a barra/status de "Baixando"
-    const interval = setInterval(carregarDownloads, 3000);
+    // Polling a cada 3 segundos
+    const interval = setInterval(carregarTranscricoes, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  const carregarDownloads = async () => {
+  const carregarTranscricoes = async () => {
     try {
-      const data = await DownloadService.listarDownloads();
-      setDownloads(data);
+      const data = await ProcessingService.listarTranscricoes();
+      setTranscricoes(data);
     } catch (error) {
-      console.error("Erro ao carregar os downloads.", error);
+      console.error("Erro ao carregar as transcrições.", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const abrirTexto = async (taskId) => {
+    try {
+      const conteudo = await ProcessingService.obterTranscricaoConteudo(taskId);
+      showModal({
+        title: "Conteúdo da Transcrição",
+        message: (
+          <div style={{ 
+            maxHeight: "400px", 
+            overflowY: "auto", 
+            padding: "10px", 
+            background: "rgba(0,0,0,0.3)", 
+            borderRadius: "4px",
+            fontFamily: "var(--mono)",
+            fontSize: "13px",
+            lineHeight: "1.6",
+            whiteSpace: "pre-wrap",
+            color: "var(--text-h)"
+          }}>
+            {conteudo || "Arquivo vazio ou processando..."}
+          </div>
+        ),
+        type: "info"
+      });
+    } catch (error) {
+      showModal({
+        title: "Erro de Leitura",
+        message: "Não foi possível carregar o conteúdo do arquivo txt.",
+        type: "error"
+      });
+    }
+  };
+
+  const gerarSugestaoTitulos = async (transcriptionId) => {
+    try {
+      await ProcessingService.gerarTitulos(transcriptionId);
+      showModal({
+        title: "Processamento Iniciado",
+        message: "O Ollama está analisando a transcrição para gerar títulos virais. Verifique a Central de Títulos em instantes.",
+        type: "success"
+      });
+    } catch (error) {
+      showModal({
+        title: "Erro no Ollama",
+        message: "Não foi possível iniciar a geração de títulos.",
+        type: "error"
+      });
     }
   };
 
@@ -52,7 +101,7 @@ export default function Downloads() {
           <span
             style={{ color: "var(--accent)", textShadow: "var(--shadow-neon)" }}
           >
-            Downloads
+            Transcrições
           </span>
         </h1>
         <span
@@ -67,16 +116,16 @@ export default function Downloads() {
             letterSpacing: "1px",
           }}
         >
-          ARQUIVOS LOCAIS
+          WHISPER ENGINE
         </span>
       </div>
 
-      {loading && downloads.length === 0 ? (
+      {loading && transcricoes.length === 0 ? (
         <div
           className="glass-panel"
           style={{ textAlign: "center", padding: "50px", color: "var(--text)" }}
         >
-          Carregando histórico transacional...
+          Consultando registros do Whisper...
         </div>
       ) : (
         <div className="glass-panel" style={{ overflow: "hidden" }}>
@@ -104,7 +153,7 @@ export default function Downloads() {
                     textTransform: "uppercase",
                   }}
                 >
-                  ID da Stream
+                  Task ID
                 </th>
                 <th
                   style={{
@@ -114,7 +163,7 @@ export default function Downloads() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Identificação
+                  Audio Ref
                 </th>
                 <th
                   style={{
@@ -124,7 +173,7 @@ export default function Downloads() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Timestamp
+                  Status
                 </th>
                 <th
                   style={{
@@ -134,7 +183,7 @@ export default function Downloads() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Status Core
+                  Criado em
                 </th>
                 <th
                   style={{
@@ -144,12 +193,12 @@ export default function Downloads() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Módulos
+                  Ação
                 </th>
               </tr>
             </thead>
             <tbody>
-              {downloads.length === 0 && (
+              {transcricoes.length === 0 && (
                 <tr>
                   <td
                     colSpan="5"
@@ -159,21 +208,20 @@ export default function Downloads() {
                       color: "var(--text)",
                     }}
                   >
-                    Nenhuma requisição de extração detectada. Refaça a operação
-                    na aba "Ativos Digitais".
+                    Nenhuma transcrição encontrada.
                   </td>
                 </tr>
               )}
-              {downloads.map((dl) => (
+              {transcricoes.map((item) => (
                 <tr
-                  key={dl.id}
+                  key={item.id}
                   style={{
                     borderBottom: "1px solid var(--border)",
                     transition: "background 0.2s",
                   }}
                   onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    "var(--surface-hover)")
+                    (e.currentTarget.style.backgroundColor =
+                      "var(--surface-hover)")
                   }
                   onMouseLeave={(e) =>
                     (e.currentTarget.style.backgroundColor = "transparent")
@@ -183,22 +231,56 @@ export default function Downloads() {
                     style={{
                       padding: "16px",
                       fontWeight: "600",
+                      color: "var(--text)",
+                      fontFamily: "var(--mono)",
+                      fontSize: "13px",
+                    }}
+                  >
+                    #{item.id}
+                  </td>
+                  <td
+                    style={{
+                      padding: "16px",
+                      fontWeight: "600",
                       color: "var(--accent)",
                       fontFamily: "var(--mono)",
                       fontSize: "13px",
                     }}
                   >
-                    #{dl.video_id}
+                    A#{item.audio_id}
                   </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      color: "var(--text-h)",
-                      fontWeight: "500",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {dl.titulo}
+                  <td style={{ padding: "16px" }}>
+                    <span
+                      style={{
+                        padding: "4px 8px",
+                        background:
+                          item.status === "CONCLUIDO"
+                            ? "rgba(16, 185, 129, 0.1)"
+                            : item.status === "PROCESSANDO"
+                              ? "rgba(245, 158, 11, 0.1)"
+                              : "rgba(239, 68, 68, 0.1)",
+                        color:
+                          item.status === "CONCLUIDO"
+                            ? "var(--success)"
+                            : item.status === "PROCESSANDO"
+                              ? "var(--warning)"
+                              : "var(--danger)",
+                        border: "1px solid",
+                        borderColor:
+                          item.status === "CONCLUIDO"
+                            ? "var(--success)"
+                            : item.status === "PROCESSANDO"
+                              ? "var(--warning)"
+                              : "var(--danger)",
+                        borderRadius: "4px",
+                        fontSize: "10px",
+                        fontWeight: "800",
+                        letterSpacing: "0.5px",
+                        fontFamily: "var(--mono)",
+                      }}
+                    >
+                      {item.status.toUpperCase()}
+                    </span>
                   </td>
                   <td
                     style={{
@@ -208,49 +290,13 @@ export default function Downloads() {
                       fontFamily: "var(--mono)",
                     }}
                   >
-                    {dl.criado_em}
+                    {new Date(item.criado_em).toLocaleString()}
                   </td>
                   <td style={{ padding: "16px" }}>
-                    <span
-                      style={{
-                        padding: "4px 8px",
-                        background:
-                          dl.status === "CONCLUIDO"
-                            ? "rgba(16, 185, 129, 0.1)"
-                            : dl.status === "BAIXANDO"
-                              ? "rgba(245, 158, 11, 0.1)"
-                              : "rgba(239, 68, 68, 0.1)",
-                        color:
-                          dl.status === "CONCLUIDO"
-                            ? "var(--success)"
-                            : dl.status === "BAIXANDO"
-                              ? "var(--warning)"
-                              : "var(--danger)",
-                        border: "1px solid",
-                        borderColor:
-                          dl.status === "CONCLUIDO"
-                            ? "var(--success)"
-                            : dl.status === "BAIXANDO"
-                              ? "var(--warning)"
-                              : "var(--danger)",
-                        borderRadius: "4px",
-                        textShadow:
-                          dl.status === "CONCLUIDO"
-                            ? "0 0 10px rgba(16,185,129,0.5)"
-                            : "none",
-                        fontSize: "10px",
-                        fontWeight: "800",
-                        letterSpacing: "0.5px",
-                        fontFamily: "var(--mono)",
-                      }}
-                    >
-                      {dl.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td style={{ padding: "16px" }}>
-                    {dl.status === "CONCLUIDO" ? (
-                      <div style={{ display: "flex", gap: "8px" }}>
+                    {item.status === "CONCLUIDO" ? (
+                      <div style={{ display: 'flex', gap: '8px' }}>
                         <button
+                          onClick={() => abrirTexto(item.id)}
                           style={{
                             padding: "6px 12px",
                             background: "var(--bg)",
@@ -258,39 +304,27 @@ export default function Downloads() {
                             border: "1px solid var(--border)",
                             borderRadius: "4px",
                             cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
                             fontSize: "11px",
                             fontWeight: "600",
-                            textTransform: "uppercase",
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.background = "var(--surface-hover)";
-                            e.target.style.borderColor = "var(--accent)";
+                            e.currentTarget.style.borderColor = "var(--accent)";
+                            e.currentTarget.style.color = "var(--accent)";
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.background = "var(--bg)";
-                            e.target.style.borderColor = "var(--border)";
-                          }}
-                          onClick={async () => {
-                            try {
-                              const res = await ProcessingService.extrairAudio(dl.video_id);
-                              showModal({
-                                title: "Extração Iniciada",
-                                message: res.mensagem,
-                                type: "success",
-                              });
-                            } catch (e) {
-                              showModal({
-                                title: "Erro de Módulo",
-                                message: "Falha ao iniciar extração de áudio. Verifique se o vídeo já foi baixado.",
-                                type: "error",
-                              });
-                            }
+                            e.currentTarget.style.borderColor = "var(--border)";
+                            e.currentTarget.style.color = "var(--text-h)";
                           }}
                         >
-                          <Lucide.Music size={18} color="var(--accent)" />
+                          <Lucide.FileText size={14} /> VER TEXTO
                         </button>
 
-                        {/* <button
+                        <button
+                          onClick={() => gerarSugestaoTitulos(item.id)}
+                          title="Gerar Sugestões de Títulos com Ollama"
                           style={{
                             padding: "6px 12px",
                             background: "var(--bg)",
@@ -298,57 +332,24 @@ export default function Downloads() {
                             border: "1px solid var(--border)",
                             borderRadius: "4px",
                             cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
                             fontSize: "11px",
                             fontWeight: "600",
-                            textTransform: "uppercase",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "var(--warning)";
+                            e.currentTarget.style.color = "var(--warning)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "var(--border)";
+                            e.currentTarget.style.color = "var(--text-h)";
                           }}
                         >
-                          <Info size={24} color="var(--accent)" />
-                        </button> */}
+                          <Lucide.Lightbulb size={14} /> IA TITULOS
+                        </button>
                       </div>
-                    ) : dl.status.startsWith("ERRO") ? (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await DownloadService.tentarNovamente(
-                              dl.id,
-                            );
-                            showModal({
-                              title: "Sobrescrita Injetada",
-                              message: res.mensagem,
-                              type: "success",
-                            });
-                            carregarDownloads();
-                          } catch (e) {
-                            showModal({
-                              title: "Erro de Execução",
-                              message:
-                                "O subsistema rejeitou a nova tentativa de download.",
-                              type: "error",
-                            });
-                          }
-                        }}
-                        style={{
-                          padding: "6px 12px",
-                          background: "transparent",
-                          color: "var(--warning)",
-                          border: "1px solid var(--warning)",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontSize: "11px",
-                          fontWeight: "700",
-                          textTransform: "uppercase",
-                        }}
-                        onMouseEnter={(e) =>
-                        (e.target.style.background =
-                          "rgba(245, 158, 11, 0.15)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.target.style.background = "transparent")
-                        }
-                      >
-                        Force Retry
-                      </button>
                     ) : (
                       <span
                         style={{
@@ -357,7 +358,7 @@ export default function Downloads() {
                           fontFamily: "var(--mono)",
                         }}
                       >
-                        Aguardando...
+                        {item.status === "ERRO" ? "Falhou" : "Processando..."}
                       </span>
                     )}
                   </td>

@@ -5,6 +5,9 @@ import Login from './pages/Login';
 import SidebarLayout from './components/SidebarLayout';
 import Videos from './pages/Videos';
 import Downloads from './pages/Downloads';
+import Extracoes from './pages/Extracoes';
+import Transcricoes from './pages/Transcricoes';
+import Titulos from './pages/Titulos';
 
 // Página Simples apenas didática
 function Home() {
@@ -30,6 +33,9 @@ export default function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/videos" element={<Videos />} />
             <Route path="/downloads" element={<Downloads />} />
+            <Route path="/extracoes" element={<Extracoes />} />
+            <Route path="/transcricoes" element={<Transcricoes />} />
+            <Route path="/titulos" element={<Titulos />} />
           </Route>
 
         </Routes>

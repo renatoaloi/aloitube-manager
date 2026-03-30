@@ -246,7 +246,7 @@ function VideoListItem({ vid, showModal }) {
               const res = await DownloadService.baixarVideo(vid.id);
               showModal({
                 title: "Comando Aceito",
-                message: `Status da Operação: ${res.mensagem || "Mando baixar!"}. Acompanhe o progresso na Central de Extração.`,
+                message: `Status da Operação: ${res.mensagem || "Mando baixar!"}. Acompanhe o progresso na Central de Downloads.`,
                 type: "success",
               });
             } catch (e) {
@@ -259,6 +259,28 @@ function VideoListItem({ vid, showModal }) {
             }
           }}
         />
+        {/* <ActionButton
+          icon="🎵"
+          tooltip="Extrair Áudio (MP3)"
+          hoverColor="var(--success)"
+          onClick={async () => {
+            try {
+              const { ProcessingService } = await import("../api");
+              const res = await ProcessingService.extrairAudio(vid.id);
+              showModal({
+                title: "Extração Iniciada",
+                message: res.mensagem,
+                type: "success",
+              });
+            } catch (e) {
+              showModal({
+                title: "Erro de Módulo",
+                message: "Falha ao iniciar extração de áudio. Verifique se o vídeo já foi baixado.",
+                type: "error",
+              });
+            }
+          }}
+        /> */}
         {/* <ActionButton
                     icon={icons.comments}
                     tooltip="Extrair Comentários"

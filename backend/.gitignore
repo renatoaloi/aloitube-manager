@@ -1,5 +1,7 @@
 venv/
 downloads/
+audios/
+transcricoes/
 .env
 **/__pycache__/
 **/*.pyc

@@ -38,3 +38,33 @@ class DownloadTask(Base):
     arquivo_path = Column(String(255), nullable=True)
     criado_em = Column(DateTime, default=datetime.now)
     atualizado_em = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class AudioTask(Base):
+    __tablename__ = "audio_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(String(50), nullable=False, index=True)
+    arquivo_path = Column(String(255), nullable=True)
+    status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
+    criado_em = Column(DateTime, default=datetime.now)
+    atualizado_em = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class TranscriptionTask(Base):
+    __tablename__ = "transcription_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    audio_id = Column(Integer, nullable=False, index=True)
+    arquivo_path = Column(String(255), nullable=True)
+    status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
+    criado_em = Column(DateTime, default=datetime.now)
+    atualizado_em = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class TitleTask(Base):
+    __tablename__ = "title_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    transcription_id = Column(Integer, nullable=False, index=True)
+    sugestoes = Column(Text, nullable=True) # IA Output com os 3 títulos
+    status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
+    criado_em = Column(DateTime, default=datetime.now)
+    atualizado_em = Column(DateTime, default=datetime.now, onupdate=datetime.now)
