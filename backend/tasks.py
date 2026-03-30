@@ -4,7 +4,7 @@ from huey import SqliteHuey
 from database import SessionLocal
 from models import VideoTask
 
-huey = SqliteHuey(filename='huey_queue.db')
+huey = SqliteHuey(filename='data/huey_queue.db')
 
 @huey.task()
 def processar_dados_pesados(db_task_id: int):
