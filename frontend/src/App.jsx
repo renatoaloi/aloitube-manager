@@ -8,6 +8,8 @@ import Downloads from './pages/Downloads';
 import Extracoes from './pages/Extracoes';
 import Transcricoes from './pages/Transcricoes';
 import Titulos from './pages/Titulos';
+import Descricoes from './pages/Descricoes';
+import Thumbnails from './pages/Thumbnails';
 
 // Página Simples apenas didática
 function Home() {
@@ -36,6 +38,8 @@ export default function App() {
             <Route path="/extracoes" element={<Extracoes />} />
             <Route path="/transcricoes" element={<Transcricoes />} />
             <Route path="/titulos" element={<Titulos />} />
+            <Route path="/descricoes" element={<Descricoes />} />
+            <Route path="/thumbnails" element={<Thumbnails />} />
           </Route>
 
         </Routes>

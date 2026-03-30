@@ -151,4 +151,64 @@ export const ProcessingService = {
       throw error;
     }
   },
+
+  gerarDescricao: async (transcriptionId) => {
+    try {
+      const response = await api.post(`/gerar-descricao/${transcriptionId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao gerar descrição:", error);
+      throw error;
+    }
+  },
+
+  listarDescricoes: async () => {
+    try {
+      const response = await api.get("/descricoes");
+      return response.data.descricoes;
+    } catch (error) {
+      console.error("Erro ao listar descrições:", error);
+      throw error;
+    }
+  },
+
+  obterDescricaoDetalhes: async (descriptionTaskId) => {
+    try {
+      const response = await api.get(`/descricao-detalhes/${descriptionTaskId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao obter detalhes da descrição:", error);
+      throw error;
+    }
+  },
+
+  gerarThumbnails: async (transcriptionId) => {
+    try {
+      const response = await api.post(`/gerar-thumbnails/${transcriptionId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao gerar thumbnails:", error);
+      throw error;
+    }
+  },
+
+  listarThumbnails: async () => {
+    try {
+      const response = await api.get("/thumbnails");
+      return response.data.thumbnails;
+    } catch (error) {
+      console.error("Erro ao listar thumbnails:", error);
+      throw error;
+    }
+  },
+
+  obterThumbnailDetalhes: async (thumbnailTaskId) => {
+    try {
+      const response = await api.get(`/thumbnail-detalhes/${thumbnailTaskId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao obter detalhes do thumbnail:", error);
+      throw error;
+    }
+  },
 };

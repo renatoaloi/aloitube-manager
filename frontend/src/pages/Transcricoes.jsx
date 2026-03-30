@@ -33,11 +33,11 @@ export default function Transcricoes() {
       showModal({
         title: "Conteúdo da Transcrição",
         message: (
-          <div style={{ 
-            maxHeight: "400px", 
-            overflowY: "auto", 
-            padding: "10px", 
-            background: "rgba(0,0,0,0.3)", 
+          <div style={{
+            maxHeight: "400px",
+            overflowY: "auto",
+            padding: "10px",
+            background: "rgba(0,0,0,0.3)",
             borderRadius: "4px",
             fontFamily: "var(--mono)",
             fontSize: "13px",
@@ -71,6 +71,40 @@ export default function Transcricoes() {
       showModal({
         title: "Erro no Ollama",
         message: "Não foi possível iniciar a geração de títulos.",
+        type: "error"
+      });
+    }
+  };
+
+  const gerarSugestaoDescricao = async (transcriptionId) => {
+    try {
+      await ProcessingService.gerarDescricao(transcriptionId);
+      showModal({
+        title: "Processamento Iniciado",
+        message: "O Ollama está analisando a transcrição para gerar descrição SEO. Verifique a Central de Descrições em instantes.",
+        type: "success"
+      });
+    } catch (error) {
+      showModal({
+        title: "Erro no Ollama",
+        message: "Não foi possível iniciar a geração de descrição SEO.",
+        type: "error"
+      });
+    }
+  };
+
+  const gerarSugestaoThumbnails = async (transcriptionId) => {
+    try {
+      await ProcessingService.gerarThumbnails(transcriptionId);
+      showModal({
+        title: "Processamento Iniciado",
+        message: "O Ollama está analisando a transcrição para gerar thumbnails. Verifique a Central de Thumbnails em instantes.",
+        type: "success"
+      });
+    } catch (error) {
+      showModal({
+        title: "Erro no Ollama",
+        message: "Não foi possível iniciar a geração de thumbnails.",
         type: "error"
       });
     }
@@ -220,8 +254,8 @@ export default function Transcricoes() {
                     transition: "background 0.2s",
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor =
-                      "var(--surface-hover)")
+                  (e.currentTarget.style.backgroundColor =
+                    "var(--surface-hover)")
                   }
                   onMouseLeave={(e) =>
                     (e.currentTarget.style.backgroundColor = "transparent")
@@ -347,7 +381,61 @@ export default function Transcricoes() {
                             e.currentTarget.style.color = "var(--text-h)";
                           }}
                         >
-                          <Lucide.Lightbulb size={14} /> IA TITULOS
+                          <Lucide.ListPlus size={18} />
+                        </button>
+                        <button
+                          onClick={() => gerarSugestaoDescricao(item.id)}
+                          title="Gerar Sugestão de Descrição com Ollama"
+                          style={{
+                            padding: "6px 12px",
+                            background: "var(--bg)",
+                            color: "var(--text-h)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            fontSize: "11px",
+                            fontWeight: "600",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "var(--warning)";
+                            e.currentTarget.style.color = "var(--warning)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "var(--border)";
+                            e.currentTarget.style.color = "var(--text-h)";
+                          }}
+                        >
+                          <Lucide.ClipboardPlus size={18} />
+                        </button>
+                        <button
+                          onClick={() => gerarSugestaoThumbnails(item.id)}
+                          title="Gerar Sugestão de Thumbnails com Ollama"
+                          style={{
+                            padding: "6px 12px",
+                            background: "var(--bg)",
+                            color: "var(--text-h)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            fontSize: "11px",
+                            fontWeight: "600",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "var(--warning)";
+                            e.currentTarget.style.color = "var(--warning)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "var(--border)";
+                            e.currentTarget.style.color = "var(--text-h)";
+                          }}
+                        >
+                          <Lucide.ImagePlay size={18} />
                         </button>
                       </div>
                     ) : (

@@ -68,3 +68,23 @@ class TitleTask(Base):
     status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
     criado_em = Column(DateTime, default=datetime.now)
     atualizado_em = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class DescriptionTask(Base):
+    __tablename__ = "description_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    transcription_id = Column(Integer, nullable=False, index=True)
+    sugestoes = Column(Text, nullable=True) # IA Output com a descrição e 20 tags para SEO
+    status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
+    criado_em = Column(DateTime, default=datetime.now)
+    atualizado_em = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class ThumbnailTask(Base):
+    __tablename__ = "thumbnail_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    transcription_id = Column(Integer, nullable=False, index=True)
+    sugestoes = Column(Text, nullable=True) # IA Output com a 3 prompts de geração de thumbnail
+    status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
+    criado_em = Column(DateTime, default=datetime.now)
+    atualizado_em = Column(DateTime, default=datetime.now, onupdate=datetime.now)

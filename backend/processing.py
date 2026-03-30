@@ -4,7 +4,7 @@ import shutil
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from database import get_db
-from models import DownloadTask, AudioTask, TranscriptionTask, TitleTask
+from models import DownloadTask, AudioTask, TranscriptionTask, TitleTask, DescriptionTask, ThumbnailTask
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -97,13 +97,17 @@ def executar_geracao_titulos(title_task_id: int, transcription_id: int, db: Sess
 
         # 3. Integração com Ollama (conforme solicitado pelo usuário no comentário)
         import ollama
-        prompt = f"Baseado no seguinte texto de um vídeo, crie 3 opções de títulos virais e chamativos para o YouTube em português. Retorne apenas os 3 títulos numerados.\n\nTexto: {texto_transcrito}"
+        system_msg = "Você é um especialista em SEO para YouTube. Responda APENAS em Português do Brasil. Não inclua apresentações ou comentários iniciais, retorne apenas o conteúdo solicitado."
+        prompt = f"Baseado no seguinte texto de um vídeo, crie 3 opções de títulos virais e chamativos para o YouTube. Retorne apenas os 3 títulos numerados.\n\nTexto: {texto_transcrito}"
         
-        print(f"[*] Chamando Ollama para gerar títulos (transcription_id={transcription_id})")
+        print(f"[*] Chamando Ollama Llama3.1 para gerar títulos (transcription_id={transcription_id})")
         
         resposta = ollama.chat(
-            model='llama3', 
-            messages=[{'role': 'user', 'content': prompt}]
+            model='llama3.1', 
+            messages=[
+                {'role': 'system', 'content': system_msg},
+                {'role': 'user', 'content': prompt}
+            ]
         )
         
         sugestoes = resposta['message']['content']
@@ -119,6 +123,104 @@ def executar_geracao_titulos(title_task_id: int, transcription_id: int, db: Sess
         print(f"[!] Erro ao gerar títulos no Ollama: {e}")
         title_task.status = "ERRO"
         title_task.sugestoes = f"Erro: {str(e)}"
+    
+    db.commit()
+
+def executar_geracao_descricao(description_task_id: int, transcription_id: int, db: Session):
+    """ Função que usa o Ollama para gerar sugestão de descrições SEO e tags """
+    description_task = db.query(DescriptionTask).filter(DescriptionTask.id == description_task_id).first()
+    if not description_task:
+        return
+
+    try:
+        # 1. Busca os detalhes da transcrição
+        transc_task = db.query(TranscriptionTask).filter(TranscriptionTask.id == transcription_id).first()
+        if not transc_task or not transc_task.arquivo_path:
+            raise Exception("Arquivo de transcrição não encontrado.")
+
+        # 2. Lê o conteúdo da transcrição
+        with open(transc_task.arquivo_path, "r", encoding="utf-8") as f:
+            texto_transcrito = f.read()
+
+        if not texto_transcrito:
+            raise Exception("Transcrição vazia.")
+
+        # 3. Integração com Ollama
+        import ollama
+        system_msg = "Você é um especialista em Copywriting para YouTube. Responda APENAS em Português do Brasil. Não inclua apresentações ou comentários iniciais, retorne apenas o conteúdo solicitado."
+        prompt = f"Crie uma descrição de 3 parágrafos para o YouTube baseada no seguinte texto. A descrição deve ser envolvente e usar palavras-chave relevantes. Além disso gere as 15 melhores tags (palavras-chave curtas) para um vídeo do YouTube sobre esse assunto. Retorne as tags separadas por vírgula, depois do final da descrição.\n\nTexto: {texto_transcrito}"
+
+        print(f"[*] Chamando Ollama Llama3.1 para gerar descrição (transcription_id={transcription_id})")
+
+        resposta = ollama.chat(
+            model='llama3.1', 
+            messages=[
+                {'role': 'system', 'content': system_msg},
+                {'role': 'user', 'content': prompt}
+            ]
+        )
+        
+        sugestoes = resposta['message']['content']
+
+        if sugestoes:
+            description_task.sugestoes = sugestoes
+            description_task.status = "CONCLUIDO"
+            print(f"[+] Descrições geradas com sucesso para task #{description_task_id}")
+        else:
+            raise Exception("Ollama retornou resposta vazia.")
+
+    except Exception as e:
+        print(f"[!] Erro ao gerar descrições no Ollama: {e}")
+        description_task.status = "ERRO"
+        description_task.sugestoes = f"Erro: {str(e)}"
+    
+    db.commit()
+
+def executar_geracao_thumbnails(thumbnail_task_id: int, transcription_id: int, db: Session):
+    """ Função que usa o Ollama para gerar 3 sugestões de thumbnails virais """
+    thumbnail_task = db.query(ThumbnailTask).filter(ThumbnailTask.id == thumbnail_task_id).first()
+    if not thumbnail_task:
+        return
+
+    try:
+        # 1. Busca os detalhes da transcrição
+        transc_task = db.query(TranscriptionTask).filter(TranscriptionTask.id == transcription_id).first()
+        if not transc_task or not transc_task.arquivo_path:
+            raise Exception("Arquivo de transcrição não encontrado.")
+
+        # 2. Lê o conteúdo da transcrição
+        with open(transc_task.arquivo_path, "r", encoding="utf-8") as f:
+            texto_transcrito = f.read()
+
+        if not texto_transcrito:
+            raise Exception("Transcrição vazia.")
+
+        # 3. Integração com Ollama
+        import ollama
+        prompt = f"Baseado no texto a seguir, sugira 3 ideias visuais (prompts) detalhadas para criar a thumbnail (capa) do vídeo do YouTube. Descreva o que deve aparecer na imagem, as cores e a emoção.\n\nTexto: {texto_transcrito}"
+
+        print(f"[*] Chamando Ollama Llama3.1 para gerar thumbnails (transcription_id={transcription_id})")
+
+        resposta = ollama.chat(
+            model='llama3.1',
+            messages=[
+                {'role': 'user', 'content': prompt}
+            ]
+        )
+
+        sugestoes = resposta['message']['content']
+
+        if sugestoes:
+            thumbnail_task.sugestoes = sugestoes
+            thumbnail_task.status = "CONCLUIDO"
+            print(f"[+] Thumbnails gerados com sucesso para task #{thumbnail_task_id}")
+        else:
+            raise Exception("Ollama retornou resposta vazia.")
+
+    except Exception as e:
+        print(f"[!] Erro ao gerar thumbnails no Ollama: {e}")
+        thumbnail_task.status = "ERRO"
+        thumbnail_task.sugestoes = f"Erro: {str(e)}"
     
     db.commit()
 
@@ -300,45 +402,88 @@ def obter_titulo_detalhes(title_task_id: int, db: Session = Depends(get_db)):
     
     return {"sugestoes": task.sugestoes, "status": task.status}
 
-@router.post("/gerar-titulos/{transcription_id}")
-def gerar_titulos(transcription_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+@router.post("/gerar-descricao/{transcription_id}")
+def gerar_descricao(transcription_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """ Rota que a UI vai chamar ao clicar no ícone de lâmpada 💡 na Central de Transcrições """
     # 1. Busca a tarefa de transcrição
     transc_task = db.query(TranscriptionTask).filter(TranscriptionTask.id == transcription_id).first()
     if not transc_task or transc_task.status != "CONCLUIDO":
         raise HTTPException(status_code=404, detail="Transcrição concluída não encontrada.")
 
-    # 2. Verifica se já existe uma tarefa de geração de títulos
-    existente = db.query(TitleTask).filter(TitleTask.transcription_id == transcription_id).first()
+    # 2. Verifica se já existe uma tarefa de geração de descrição
+    existente = db.query(DescriptionTask).filter(DescriptionTask.transcription_id == transcription_id).first()
     if existente and existente.status in ["PROCESSANDO", "CONCLUIDO"]:
-        return {"status": existente.status, "mensagem": "Geração de títulos já realizada ou em andamento.", "title_task_id": existente.id}
+        return {"status": existente.status, "mensagem": "Geração de descrição já realizada ou em andamento.", "description_task_id": existente.id}
 
     # 3. Cria a tarefa no banco
-    nova_title_task = TitleTask(transcription_id=transcription_id, status="PROCESSANDO")
-    db.add(nova_title_task)
+    nova_descricao_task = DescriptionTask(transcription_id=transcription_id, status="PROCESSANDO")
+    db.add(nova_descricao_task)
     db.commit()
-    db.refresh(nova_title_task)
+    db.refresh(nova_descricao_task)
 
     # 4. Dispara a tarefa em background
-    background_tasks.add_task(executar_geracao_titulos, nova_title_task.id, transcription_id, db)
+    background_tasks.add_task(executar_geracao_descricao, nova_descricao_task.id, transcription_id, db)
 
     return {
         "status": "PROCESSANDO",
-        "mensagem": "Geração de títulos iniciada em background com Ollama.",
-        "title_task_id": nova_title_task.id
+        "mensagem": "Geração de descrição iniciada em background com Ollama.",
+        "description_task_id": nova_descricao_task.id
     }
 
-@router.get("/titulos")
-def listar_titulos(db: Session = Depends(get_db)):
+@router.get("/descricoes")
+def listar_descricoes(db: Session = Depends(get_db)):
     """ Lista todas as tarefas de geração de títulos """
-    titulos = db.query(TitleTask).order_by(TitleTask.criado_em.desc()).all()
-    return {"titulos": titulos}
+    descricoes = db.query(DescriptionTask).order_by(DescriptionTask.criado_em.desc()).all()
+    return {"descricoes": descricoes}
 
-@router.get("/titulo-detalhes/{title_task_id}")
-def obter_titulo_detalhes(title_task_id: int, db: Session = Depends(get_db)):
+@router.get("/descricao-detalhes/{description_task_id}")
+def obter_descricao_detalhes(description_task_id: int, db: Session = Depends(get_db)):
     """ Retorna as sugestões geradas pela IA """
-    task = db.query(TitleTask).filter(TitleTask.id == title_task_id).first()
+    task = db.query(DescriptionTask).filter(DescriptionTask.id == description_task_id).first()
     if not task:
-        raise HTTPException(status_code=404, detail="Tarefa de título não encontrada.")
+        raise HTTPException(status_code=404, detail="Tarefa de descrição não encontrada.")
+    
+    return {"sugestoes": task.sugestoes, "status": task.status}
+
+@router.post("/gerar-thumbnails/{transcription_id}")
+def gerar_thumbnails(transcription_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """ Rota que a UI vai chamar ao clicar no ícone de lâmpada 💡 na Central de Transcrições """
+    # 1. Busca a tarefa de transcrição
+    transc_task = db.query(TranscriptionTask).filter(TranscriptionTask.id == transcription_id).first()
+    if not transc_task or transc_task.status != "CONCLUIDO":
+        raise HTTPException(status_code=404, detail="Transcrição concluída não encontrada.")
+
+    # 2. Verifica se já existe uma tarefa de geração de thumbnails
+    existente = db.query(ThumbnailTask).filter(ThumbnailTask.transcription_id == transcription_id).first()
+    if existente and existente.status in ["PROCESSANDO", "CONCLUIDO"]:
+        return {"status": existente.status, "mensagem": "Geração de thumbnails já realizada ou em andamento.", "thumbnail_task_id": existente.id}
+
+    # 3. Cria a tarefa no banco
+    nova_thumbnail_task = ThumbnailTask(transcription_id=transcription_id, status="PROCESSANDO")
+    db.add(nova_thumbnail_task)
+    db.commit()
+    db.refresh(nova_thumbnail_task)
+
+    # 4. Dispara a tarefa em background
+    background_tasks.add_task(executar_geracao_thumbnails, nova_thumbnail_task.id, transcription_id, db)
+
+    return {
+        "status": "PROCESSANDO",
+        "mensagem": "Geração de thumbnails iniciada em background com Ollama.",
+        "thumbnail_task_id": nova_thumbnail_task.id
+    }
+
+@router.get("/thumbnails")
+def listar_thumbnails(db: Session = Depends(get_db)):
+    """ Lista todas as tarefas de geração de thumbnails """
+    thumbnails = db.query(ThumbnailTask).order_by(ThumbnailTask.criado_em.desc()).all()
+    return {"thumbnails": thumbnails}
+
+@router.get("/thumbnail-detalhes/{thumbnail_task_id}")
+def obter_thumbnail_detalhes(thumbnail_task_id: int, db: Session = Depends(get_db)):
+    """ Retorna as sugestões geradas pela IA """
+    task = db.query(ThumbnailTask).filter(ThumbnailTask.id == thumbnail_task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarefa de thumbnail não encontrada.")
     
     return {"sugestoes": task.sugestoes, "status": task.status}

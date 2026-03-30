@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Video, Download, Settings, Menu, X, Activity, Music, FileText, Lightbulb } from 'lucide-react';
+import { Home, Video, Download, Settings, Menu, X, Activity, Music, FileText, Lightbulb, ScrollText, Image } from 'lucide-react';
 
 export default function SidebarLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -37,6 +37,8 @@ export default function SidebarLayout() {
         { path: '/extracoes', icon: Music, label: 'Central de Extração' },
         { path: '/transcricoes', icon: FileText, label: 'Central de Transcrições' },
         { path: '/titulos', icon: Lightbulb, label: 'Central de Títulos' },
+        { path: '/descricoes', icon: ScrollText, label: 'Central de Descrições' },
+        { path: '/thumbnails', icon: Image, label: 'Central de Thumbnails' },
     ];
 
     return (
