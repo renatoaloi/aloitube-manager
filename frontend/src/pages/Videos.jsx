@@ -176,10 +176,10 @@ function VideoListItem({ vid, showModal }) {
             fontSize: "16px",
             margin: "0 0 6px 0",
             color: "var(--text-h)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
+            whiteSpace: "normal",
+            wordBreak: "break-word",
             fontWeight: "600",
+            lineHeight: "1.4"
           }}
         >
           {vid.titulo}
@@ -243,7 +243,11 @@ function VideoListItem({ vid, showModal }) {
           hoverColor="var(--accent)"
           onClick={async () => {
             try {
-              const res = await DownloadService.baixarVideo(vid.id);
+              const res = await DownloadService.baixarVideo(vid.id, {
+                titulo: vid.titulo,
+                thumb: vid.thumb,
+                data_publicacao: vid.data
+              });
               showModal({
                 title: "Comando Aceito",
                 message: `Status da Operação: ${res.mensagem || "Mando baixar!"}. Acompanhe o progresso na Central de Downloads.`,

@@ -33,9 +33,9 @@ export default function Thumbnails() {
       showModal({
         title: "Sugestões de Thumbnails (Ollama)",
         message: (
-          <div style={{ 
-            padding: "15px", 
-            background: "rgba(0,0,0,0.3)", 
+          <div style={{
+            padding: "15px",
+            background: "rgba(0,0,0,0.3)",
             borderRadius: "4px",
             color: "var(--text-h)",
             lineHeight: "1.8",
@@ -129,6 +129,7 @@ export default function Thumbnails() {
               >
                 <th style={{ padding: "16px", fontSize: "12px" }}>TASK ID</th>
                 <th style={{ padding: "16px", fontSize: "12px" }}>TRANSCR. REF</th>
+                <th style={{ padding: "16px", fontSize: "12px" }}>IDENTIFICAÇÃO</th>
                 <th style={{ padding: "16px", fontSize: "12px" }}>STATUS</th>
                 <th style={{ padding: "16px", fontSize: "12px" }}>GERADO EM</th>
                 <th style={{ padding: "16px", fontSize: "12px" }}>AÇÃO</th>
@@ -137,7 +138,7 @@ export default function Thumbnails() {
             <tbody>
               {thumbnails.length === 0 && (
                 <tr>
-                  <td colSpan="5" style={{ padding: "40px", textAlign: "center", color: "var(--text)" }}>
+                  <td colSpan="6" style={{ padding: "40px", textAlign: "center", color: "var(--text)" }}>
                     Nenhuma tarefa de thumbnail encontrada.
                   </td>
                 </tr>
@@ -154,6 +155,18 @@ export default function Thumbnails() {
                   </td>
                   <td style={{ padding: "16px", fontWeight: "600", color: "var(--accent)", fontFamily: "var(--mono)", fontSize: "13px" }}>
                     T#{item.transcription_id}
+                  </td>
+                  <td style={{
+                    padding: "16px",
+                    color: "var(--text-h)",
+                    fontWeight: "500",
+                    fontSize: "14px",
+                    maxWidth: "400px",
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                    lineHeight: "1.4"
+                  }}>
+                    {item.titulo}
                   </td>
                   <td style={{ padding: "16px" }}>
                     <span
@@ -176,6 +189,7 @@ export default function Thumbnails() {
                         fontSize: "10px",
                         fontWeight: "800",
                         fontFamily: "var(--mono)",
+                        textWrap: "nowrap",
                       }}
                     >
                       {item.status.toUpperCase()}

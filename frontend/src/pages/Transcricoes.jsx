@@ -207,6 +207,16 @@ export default function Transcricoes() {
                     textTransform: "uppercase",
                   }}
                 >
+                  Identificação
+                </th>
+                <th
+                  style={{
+                    padding: "16px",
+                    fontSize: "12px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                  }}
+                >
                   Status
                 </th>
                 <th
@@ -235,7 +245,7 @@ export default function Transcricoes() {
               {transcricoes.length === 0 && (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     style={{
                       padding: "40px",
                       textAlign: "center",
@@ -283,6 +293,20 @@ export default function Transcricoes() {
                   >
                     A#{item.audio_id}
                   </td>
+                  <td
+                    style={{
+                      padding: "16px",
+                      color: "var(--text-h)",
+                      fontWeight: "500",
+                      fontSize: "14px",
+                      maxWidth: "400px",
+                      whiteSpace: "normal",
+                      wordBreak: "break-word",
+                      lineHeight: "1.4"
+                    }}
+                  >
+                    {item.titulo}
+                  </td>
                   <td style={{ padding: "16px" }}>
                     <span
                       style={{
@@ -311,6 +335,7 @@ export default function Transcricoes() {
                         fontWeight: "800",
                         letterSpacing: "0.5px",
                         fontFamily: "var(--mono)",
+                        textWrap: "nowrap",
                       }}
                     >
                       {item.status.toUpperCase()}

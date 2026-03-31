@@ -4,8 +4,9 @@ import shutil
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from database import get_db
-from models import DownloadTask, AudioTask, TranscriptionTask, TitleTask, DescriptionTask, ThumbnailTask
+from models import DownloadTask, AudioTask, TranscriptionTask, TitleTask, DescriptionTask, ThumbnailTask, VideoMetadata
 from dotenv import load_dotenv
+import ollama
 
 load_dotenv()
 
@@ -96,16 +97,15 @@ def executar_geracao_titulos(title_task_id: int, transcription_id: int, db: Sess
             raise Exception("Transcrição vazia.")
 
         # 3. Integração com Ollama (conforme solicitado pelo usuário no comentário)
-        import ollama
-        system_msg = "Você é um especialista em SEO para YouTube. Responda APENAS em Português do Brasil. Não inclua apresentações ou comentários iniciais, retorne apenas o conteúdo solicitado."
-        prompt = f"Baseado no seguinte texto de um vídeo, crie 3 opções de títulos virais e chamativos para o YouTube. Retorne apenas os 3 títulos numerados.\n\nTexto: {texto_transcrito}"
-        
+        #system_msg = "Você é um especialista em SEO para YouTube. Responda APENAS em Português do Brasil. Não inclua apresentações ou comentários iniciais, retorne apenas o conteúdo solicitado."
+        prompt = f"Baseado no seguinte texto de um vídeo, crie 3 opções de títulos virais e chamativos para o YouTube em Português do Brasil. Retorne apenas os 3 títulos numerados.\n\nTexto: {texto_transcrito[:2000]}"
+
         print(f"[*] Chamando Ollama Llama3.1 para gerar títulos (transcription_id={transcription_id})")
         
         resposta = ollama.chat(
             model='llama3.1', 
             messages=[
-                {'role': 'system', 'content': system_msg},
+                #{'role': 'system', 'content': system_msg},
                 {'role': 'user', 'content': prompt}
             ]
         )
@@ -146,16 +146,16 @@ def executar_geracao_descricao(description_task_id: int, transcription_id: int, 
             raise Exception("Transcrição vazia.")
 
         # 3. Integração com Ollama
-        import ollama
-        system_msg = "Você é um especialista em Copywriting para YouTube. Responda APENAS em Português do Brasil. Não inclua apresentações ou comentários iniciais, retorne apenas o conteúdo solicitado."
-        prompt = f"Crie uma descrição de 3 parágrafos para o YouTube baseada no seguinte texto. A descrição deve ser envolvente e usar palavras-chave relevantes. Além disso gere as 15 melhores tags (palavras-chave curtas) para um vídeo do YouTube sobre esse assunto. Retorne as tags separadas por vírgula, depois do final da descrição.\n\nTexto: {texto_transcrito}"
+        #system_msg = "Você é um especialista em Copywriting para YouTube. Responda APENAS em Português do Brasil. Não inclua apresentações ou comentários iniciais, retorne apenas o conteúdo solicitado."
+        prompt = f"Crie uma descrição de 3 parágrafos para um vídeo do YouTube, em Português do Brasil, baseada no seguinte texto. A descrição deve ser envolvente e usar palavras-chave relevantes. Além disso gere as 15 melhores tags (palavras-chave curtas) para um vídeo do YouTube sobre esse assunto. Retorne as tags separadas por vírgula, depois do final da descrição.\n\nTexto: {texto_transcrito[:2000]}"
 
         print(f"[*] Chamando Ollama Llama3.1 para gerar descrição (transcription_id={transcription_id})")
+        #print(prompt)
 
         resposta = ollama.chat(
             model='llama3.1', 
             messages=[
-                {'role': 'system', 'content': system_msg},
+                #{'role': 'system', 'content': system_msg},
                 {'role': 'user', 'content': prompt}
             ]
         )
@@ -196,10 +196,10 @@ def executar_geracao_thumbnails(thumbnail_task_id: int, transcription_id: int, d
             raise Exception("Transcrição vazia.")
 
         # 3. Integração com Ollama
-        import ollama
-        prompt = f"Baseado no texto a seguir, sugira 3 ideias visuais (prompts) detalhadas para criar a thumbnail (capa) do vídeo do YouTube. Descreva o que deve aparecer na imagem, as cores e a emoção.\n\nTexto: {texto_transcrito}"
+        prompt = f"Baseado no texto a seguir, sugira 3 ideias visuais (prompts) detalhadas para criar a thumbnail (capa) do vídeo do YouTube. Descreva o que deve aparecer na imagem, as cores e a emoção.\n\nTexto: {texto_transcrito[:2000]}"
 
         print(f"[*] Chamando Ollama Llama3.1 para gerar thumbnails (transcription_id={transcription_id})")
+        print(prompt)
 
         resposta = ollama.chat(
             model='llama3.1',
@@ -298,9 +298,22 @@ def extrair_audio(video_id: str, background_tasks: BackgroundTasks, db: Session 
 
 @router.get("/audios")
 def listar_audios(db: Session = Depends(get_db)):
-    """ Lista todos os áudios já processados """
-    audios = db.query(AudioTask).order_by(AudioTask.criado_em.desc()).all()
-    return {"audios": audios}
+    """ Lista todos os áudios já processados com metadados do vídeo """
+    tarefas = db.query(AudioTask, VideoMetadata).outerjoin(
+        VideoMetadata, AudioTask.video_id == VideoMetadata.video_id
+    ).order_by(AudioTask.criado_em.desc()).all()
+    
+    lista = []
+    for t, m in tarefas:
+        lista.append({
+            "id": t.id,
+            "video_id": t.video_id,
+            "titulo": m.titulo if m else f"Audio_{t.video_id}",
+            "status": t.status,
+            "arquivo_path": t.arquivo_path,
+            "criado_em": t.criado_em.strftime("%Y-%m-%d %H:%M")
+        })
+    return {"audios": lista}
 
 @router.post("/transcrever-audio/{audio_id}")
 def transcrever_audio(audio_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
@@ -322,7 +335,11 @@ def transcrever_audio(audio_id: int, background_tasks: BackgroundTasks, db: Sess
     transcricao_path = os.path.join(TRANSCRIPT_DIR, audio_task.video_id)
 
     # 4. Cria a tarefa no banco
-    nova_transcricao_task = TranscriptionTask(audio_id=audio_id, status="PROCESSANDO")
+    nova_transcricao_task = TranscriptionTask(
+        audio_id=audio_id, 
+        video_id=audio_task.video_id, # Propaga o video_id
+        status="PROCESSANDO"
+    )
     db.add(nova_transcricao_task)
     db.commit()
     db.refresh(nova_transcricao_task)
@@ -338,9 +355,23 @@ def transcrever_audio(audio_id: int, background_tasks: BackgroundTasks, db: Sess
 
 @router.get("/transcricoes")
 def listar_transcricoes(db: Session = Depends(get_db)):
-    """ Lista todas as transcrições orquestradas """
-    transcricoes = db.query(TranscriptionTask).order_by(TranscriptionTask.criado_em.desc()).all()
-    return {"transcricoes": transcricoes}
+    """ Lista todas as transcrições com metadados do vídeo """
+    tarefas = db.query(TranscriptionTask, VideoMetadata).outerjoin(
+        VideoMetadata, TranscriptionTask.video_id == VideoMetadata.video_id
+    ).order_by(TranscriptionTask.criado_em.desc()).all()
+    
+    lista = []
+    for t, m in tarefas:
+        lista.append({
+            "id": t.id,
+            "video_id": t.video_id,
+            "audio_id": t.audio_id,
+            "titulo": m.titulo if m else f"Transc_{t.video_id}",
+            "status": t.status,
+            "arquivo_path": t.arquivo_path,
+            "criado_em": t.criado_em.strftime("%Y-%m-%d %H:%M")
+        })
+    return {"transcricoes": lista}
 
 @router.get("/transcricao-conteudo/{transcricao_id}")
 def obter_transcricao_conteudo(transcricao_id: int, db: Session = Depends(get_db)):
@@ -373,7 +404,11 @@ def gerar_titulos(transcription_id: int, background_tasks: BackgroundTasks, db: 
         return {"status": existente.status, "mensagem": "Geração de títulos já realizada ou em andamento.", "title_task_id": existente.id}
 
     # 3. Cria a tarefa no banco
-    nova_title_task = TitleTask(transcription_id=transcription_id, status="PROCESSANDO")
+    nova_title_task = TitleTask(
+        transcription_id=transcription_id, 
+        video_id=transc_task.video_id, # Propaga o video_id
+        status="PROCESSANDO"
+    )
     db.add(nova_title_task)
     db.commit()
     db.refresh(nova_title_task)
@@ -389,9 +424,22 @@ def gerar_titulos(transcription_id: int, background_tasks: BackgroundTasks, db: 
 
 @router.get("/titulos")
 def listar_titulos(db: Session = Depends(get_db)):
-    """ Lista todas as tarefas de geração de títulos """
-    titulos = db.query(TitleTask).order_by(TitleTask.criado_em.desc()).all()
-    return {"titulos": titulos}
+    """ Lista todas as tarefas de geração de títulos com metadados """
+    tarefas = db.query(TitleTask, VideoMetadata).outerjoin(
+        VideoMetadata, TitleTask.video_id == VideoMetadata.video_id
+    ).order_by(TitleTask.criado_em.desc()).all()
+    
+    lista = []
+    for t, m in tarefas:
+        lista.append({
+            "id": t.id,
+            "video_id": t.video_id,
+            "transcription_id": t.transcription_id,
+            "titulo": m.titulo if m else f"Title_{t.video_id}",
+            "status": t.status,
+            "criado_em": t.criado_em.strftime("%Y-%m-%d %H:%M")
+        })
+    return {"titulos": lista}
 
 @router.get("/titulo-detalhes/{title_task_id}")
 def obter_titulo_detalhes(title_task_id: int, db: Session = Depends(get_db)):
@@ -416,7 +464,11 @@ def gerar_descricao(transcription_id: int, background_tasks: BackgroundTasks, db
         return {"status": existente.status, "mensagem": "Geração de descrição já realizada ou em andamento.", "description_task_id": existente.id}
 
     # 3. Cria a tarefa no banco
-    nova_descricao_task = DescriptionTask(transcription_id=transcription_id, status="PROCESSANDO")
+    nova_descricao_task = DescriptionTask(
+        transcription_id=transcription_id, 
+        video_id=transc_task.video_id, # Propaga o video_id
+        status="PROCESSANDO"
+    )
     db.add(nova_descricao_task)
     db.commit()
     db.refresh(nova_descricao_task)
@@ -432,9 +484,22 @@ def gerar_descricao(transcription_id: int, background_tasks: BackgroundTasks, db
 
 @router.get("/descricoes")
 def listar_descricoes(db: Session = Depends(get_db)):
-    """ Lista todas as tarefas de geração de títulos """
-    descricoes = db.query(DescriptionTask).order_by(DescriptionTask.criado_em.desc()).all()
-    return {"descricoes": descricoes}
+    """ Lista todas as tarefas de geração de descrições com metadados """
+    tarefas = db.query(DescriptionTask, VideoMetadata).outerjoin(
+        VideoMetadata, DescriptionTask.video_id == VideoMetadata.video_id
+    ).order_by(DescriptionTask.criado_em.desc()).all()
+    
+    lista = []
+    for t, m in tarefas:
+        lista.append({
+            "id": t.id,
+            "video_id": t.video_id,
+            "transcription_id": t.transcription_id,
+            "titulo": m.titulo if m else f"Desc_{t.video_id}",
+            "status": t.status,
+            "criado_em": t.criado_em.strftime("%Y-%m-%d %H:%M")
+        })
+    return {"descricoes": lista}
 
 @router.get("/descricao-detalhes/{description_task_id}")
 def obter_descricao_detalhes(description_task_id: int, db: Session = Depends(get_db)):
@@ -459,7 +524,11 @@ def gerar_thumbnails(transcription_id: int, background_tasks: BackgroundTasks, d
         return {"status": existente.status, "mensagem": "Geração de thumbnails já realizada ou em andamento.", "thumbnail_task_id": existente.id}
 
     # 3. Cria a tarefa no banco
-    nova_thumbnail_task = ThumbnailTask(transcription_id=transcription_id, status="PROCESSANDO")
+    nova_thumbnail_task = ThumbnailTask(
+        transcription_id=transcription_id, 
+        video_id=transc_task.video_id, # Propaga o video_id
+        status="PROCESSANDO"
+    )
     db.add(nova_thumbnail_task)
     db.commit()
     db.refresh(nova_thumbnail_task)
@@ -475,9 +544,22 @@ def gerar_thumbnails(transcription_id: int, background_tasks: BackgroundTasks, d
 
 @router.get("/thumbnails")
 def listar_thumbnails(db: Session = Depends(get_db)):
-    """ Lista todas as tarefas de geração de thumbnails """
-    thumbnails = db.query(ThumbnailTask).order_by(ThumbnailTask.criado_em.desc()).all()
-    return {"thumbnails": thumbnails}
+    """ Lista todas as tarefas de geração de thumbnails com metadados """
+    tarefas = db.query(ThumbnailTask, VideoMetadata).outerjoin(
+        VideoMetadata, ThumbnailTask.video_id == VideoMetadata.video_id
+    ).order_by(ThumbnailTask.criado_em.desc()).all()
+    
+    lista = []
+    for t, m in tarefas:
+        lista.append({
+            "id": t.id,
+            "video_id": t.video_id,
+            "transcription_id": t.transcription_id,
+            "titulo": m.titulo if m else f"Thumb_{t.video_id}",
+            "status": t.status,
+            "criado_em": t.criado_em.strftime("%Y-%m-%d %H:%M")
+        })
+    return {"thumbnails": lista}
 
 @router.get("/thumbnail-detalhes/{thumbnail_task_id}")
 def obter_thumbnail_detalhes(thumbnail_task_id: int, db: Session = Depends(get_db)):

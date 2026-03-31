@@ -28,6 +28,15 @@ class YoutubeChannel(Base):
     criado_em = Column(DateTime, default=datetime.now)
     atualizado_em = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
+class VideoMetadata(Base):
+    __tablename__ = "video_metadata"
+
+    video_id = Column(String(50), primary_key=True, index=True)
+    titulo = Column(String(200), nullable=True)
+    thumb = Column(String(255), nullable=True)
+    data_publicacao = Column(String(50), nullable=True)
+    criado_em = Column(DateTime, default=datetime.now)
+
 class DownloadTask(Base):
     __tablename__ = "download_tasks"
 
@@ -53,6 +62,7 @@ class TranscriptionTask(Base):
     __tablename__ = "transcription_tasks"
 
     id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(String(50), nullable=True, index=True) # Direct link for easier joins
     audio_id = Column(Integer, nullable=False, index=True)
     arquivo_path = Column(String(255), nullable=True)
     status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
@@ -63,6 +73,7 @@ class TitleTask(Base):
     __tablename__ = "title_tasks"
 
     id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(String(50), nullable=True, index=True)
     transcription_id = Column(Integer, nullable=False, index=True)
     sugestoes = Column(Text, nullable=True) # IA Output com os 3 títulos
     status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
@@ -73,6 +84,7 @@ class DescriptionTask(Base):
     __tablename__ = "description_tasks"
 
     id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(String(50), nullable=True, index=True)
     transcription_id = Column(Integer, nullable=False, index=True)
     sugestoes = Column(Text, nullable=True) # IA Output com a descrição e 20 tags para SEO
     status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO
@@ -83,6 +95,7 @@ class ThumbnailTask(Base):
     __tablename__ = "thumbnail_tasks"
 
     id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(String(50), nullable=True, index=True)
     transcription_id = Column(Integer, nullable=False, index=True)
     sugestoes = Column(Text, nullable=True) # IA Output com a 3 prompts de geração de thumbnail
     status = Column(String(20), default="PROCESSANDO") # PROCESSANDO, CONCLUIDO, ERRO

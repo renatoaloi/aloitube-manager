@@ -39,9 +39,9 @@ export const YoutubeService = {
 
 // Serviço de Downloads
 export const DownloadService = {
-  baixarVideo: async (videoId) => {
+  baixarVideo: async (videoId, metadata) => {
     try {
-      const response = await api.post(`/baixar-video/${videoId}`);
+      const response = await api.post(`/baixar-video/${videoId}`, metadata);
       return response.data;
     } catch (error) {
       console.error("Erro ao iniciar download:", error);

@@ -114,6 +114,16 @@ export default function Extracoes() {
                     textTransform: "uppercase",
                   }}
                 >
+                  Identificação
+                </th>
+                <th
+                  style={{
+                    padding: "16px",
+                    fontSize: "12px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                  }}
+                >
                   Timestamp
                 </th>
                 <th
@@ -182,6 +192,20 @@ export default function Extracoes() {
                   <td
                     style={{
                       padding: "16px",
+                      color: "var(--text-h)",
+                      fontWeight: "500",
+                      fontSize: "14px",
+                      maxWidth: "400px",
+                      whiteSpace: "normal",
+                      wordBreak: "break-word",
+                      lineHeight: "1.4"
+                    }}
+                  >
+                    {audio.titulo}
+                  </td>
+                  <td
+                    style={{
+                      padding: "16px",
                       color: "var(--text)",
                       fontSize: "12px",
                       fontFamily: "var(--mono)",
@@ -217,6 +241,7 @@ export default function Extracoes() {
                         fontWeight: "800",
                         letterSpacing: "0.5px",
                         fontFamily: "var(--mono)",
+                        textWrap: "nowrap",
                       }}
                     >
                       {audio.status.toUpperCase()}

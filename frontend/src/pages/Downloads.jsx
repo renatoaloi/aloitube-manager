@@ -196,9 +196,33 @@ export default function Downloads() {
                       color: "var(--text-h)",
                       fontWeight: "500",
                       fontSize: "14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
                     }}
                   >
-                    {dl.titulo}
+                    {dl.thumb && (
+                      <img
+                        src={dl.thumb}
+                        alt={dl.titulo}
+                        style={{
+                          width: "80px",
+                          height: "45px",
+                          borderRadius: "4px",
+                          objectFit: "cover",
+                          border: "1px solid var(--border)"
+                        }}
+                      />
+                    )}
+                    <span style={{
+                      maxWidth: "400px",
+                      whiteSpace: "normal",
+                      wordBreak: "break-word",
+                      display: "block",
+                      lineHeight: "1.4"
+                    }}>
+                      {dl.titulo}
+                    </span>
                   </td>
                   <td
                     style={{
@@ -242,6 +266,7 @@ export default function Downloads() {
                         fontWeight: "800",
                         letterSpacing: "0.5px",
                         fontFamily: "var(--mono)",
+                        textWrap: "nowrap",
                       }}
                     >
                       {dl.status.toUpperCase()}
